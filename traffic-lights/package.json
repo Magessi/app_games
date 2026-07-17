@@ -1,0 +1,14 @@
+{
+  "name": "traffic-lights",
+  "version": "2.0.0",
+  "description": "Traffic Lights — strategy board game (3-in-a-row with upgradable pieces)",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "build": "node build.mjs",
+    "dev": "npx esbuild --servedir=. --serve=127.0.0.1:8000"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}
