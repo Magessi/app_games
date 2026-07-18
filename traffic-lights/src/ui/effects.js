@@ -1,4 +1,5 @@
-// Game feel: synthesized sound (no assets), confetti, haptics, screen shake.
+// Game feel: sparse music-box / soft-bell tones (no assets), a gentle
+// petal-fall celebration, haptics, and soft screen motion.
 
 // --- Sound (Web Audio) ------------------------------------------------------
 
@@ -15,21 +16,45 @@ function ctx() {
   return audioCtx;
 }
 
-function blip(freq, { duration = 0.12, type = 'sine', gain = 0.15, when = 0 } = {}) {
+// A music-box bell: soft attack, long ring-out, with a quiet inharmonic
+// partial that gives the metallic shimmer.
+function bell(freq, { when = 0, duration = 1.1, gain = 0.07 } = {}) {
   const ac = ctx();
   if (!ac || muted) return;
+  const t0 = ac.currentTime + when;
+  for (const [mult, g] of [[1, gain], [3.01, gain * 0.18]]) {
+    const osc = ac.createOscillator();
+    const amp = ac.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq * mult, t0);
+    amp.gain.setValueAtTime(0, t0);
+    amp.gain.linearRampToValueAtTime(g, t0 + 0.02);
+    amp.gain.exponentialRampToValueAtTime(0.0004, t0 + duration);
+    osc.connect(amp).connect(ac.destination);
+    osc.start(t0);
+    osc.stop(t0 + duration + 0.1);
+  }
+}
+
+// A low, muted wooden knock for "that cannot be built there".
+function knock() {
+  const ac = ctx();
+  if (!ac || muted) return;
+  const t0 = ac.currentTime;
   const osc = ac.createOscillator();
   const amp = ac.createGain();
-  const t0 = ac.currentTime + when;
-  osc.type = type;
-  osc.frequency.setValueAtTime(freq, t0);
-  amp.gain.setValueAtTime(0, t0);
-  amp.gain.linearRampToValueAtTime(gain, t0 + 0.012);
-  amp.gain.exponentialRampToValueAtTime(0.001, t0 + duration);
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(150, t0);
+  osc.frequency.exponentialRampToValueAtTime(95, t0 + 0.12);
+  amp.gain.setValueAtTime(0.06, t0);
+  amp.gain.exponentialRampToValueAtTime(0.0005, t0 + 0.16);
   osc.connect(amp).connect(ac.destination);
   osc.start(t0);
-  osc.stop(t0 + duration + 0.05);
+  osc.stop(t0 + 0.2);
 }
+
+// Pentatonic steps: the pagoda sings higher as it grows.
+const STAGE_NOTES = [0, 440, 554.4, 659.3]; // A4, C#5, E5
 
 export const sound = {
   get muted() { return muted; },
@@ -38,12 +63,15 @@ export const sound = {
     localStorage.setItem('tl.muted', muted ? '1' : '0');
     return muted;
   },
-  select() { blip(660, { duration: 0.06, gain: 0.07 }); },
-  // Pitch rises with the piece hierarchy: green < yellow < red.
-  place(color) { blip([0, 330, 415, 523][color] || 330, { duration: 0.14 }); },
-  invalid() { blip(110, { duration: 0.18, type: 'square', gain: 0.08 }); },
-  win() { [523, 659, 784, 1047].forEach((f, i) => blip(f, { when: i * 0.11, duration: 0.22 })); },
-  lose() { [392, 330, 262].forEach((f, i) => blip(f, { when: i * 0.16, duration: 0.25, type: 'triangle' })); },
+  select() { bell(830.6, { duration: 0.35, gain: 0.03 }); },
+  place(color) {
+    bell(STAGE_NOTES[color] || 440);
+    // Consecration: a second bell answers — the soft chime of the spire.
+    if (color === 3) bell(880, { when: 0.16, duration: 1.5, gain: 0.05 });
+  },
+  invalid() { knock(); },
+  win() { [440, 554.4, 659.3, 880].forEach((f, i) => bell(f, { when: i * 0.22, duration: 1.6 })); },
+  lose() { [659.3, 554.4, 440].forEach((f, i) => bell(f, { when: i * 0.28, duration: 1.4, gain: 0.05 })); },
 };
 
 // --- Haptics ----------------------------------------------------------------
@@ -52,7 +80,7 @@ export function vibrate(pattern) {
   navigator.vibrate?.(pattern);
 }
 
-// --- Screen shake -----------------------------------------------------------
+// --- Screen motion ----------------------------------------------------------
 
 export function shake(el) {
   el.classList.remove('shake');
@@ -66,9 +94,10 @@ export function flashInvalid(cellEl) {
   cellEl.classList.add('invalid-flash');
 }
 
-// --- Confetti ---------------------------------------------------------------
+// --- Petal fall (win celebration) ------------------------------------------
 
-const COLORS = ['#34d399', '#fbbf24', '#ef4444', '#6366f1', '#a78bfa'];
+// Soft pastel petals drifting down like blossom over the water.
+const PETALS = ['#f6b8a0', '#f2d0a7', '#cfe6d4', '#f7e3c8', '#e8b4a4'];
 let confettiRaf = null;
 
 export function startConfetti() {
@@ -82,15 +111,15 @@ export function startConfetti() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
-  const parts = Array.from({ length: 150 }, () => ({
+  const parts = Array.from({ length: 90 }, () => ({
     x: Math.random() * canvas.width,
     y: Math.random() * canvas.height - canvas.height,
-    size: Math.random() * 5 + 3,
-    speed: Math.random() * 3 + 2,
+    size: Math.random() * 4 + 2.5,
+    speed: Math.random() * 1.1 + 0.6,
     drift: Math.random() * Math.PI * 2,
-    color: COLORS[Math.floor(Math.random() * COLORS.length)],
-    tiltAngle: 0,
-    tiltInc: Math.random() * 0.07 + 0.05,
+    driftSpeed: Math.random() * 0.02 + 0.008,
+    color: PETALS[Math.floor(Math.random() * PETALS.length)],
+    tilt: Math.random() * Math.PI,
   }));
 
   const step = () => {
@@ -99,15 +128,18 @@ export function startConfetti() {
     for (let i = parts.length - 1; i >= 0; i--) {
       const p = parts[i];
       p.y += p.speed;
-      p.x += Math.sin(p.drift) * 0.5;
-      p.tiltAngle += p.tiltInc;
-      const tilt = Math.sin(p.tiltAngle) * 15;
+      p.drift += p.driftSpeed;
+      p.x += Math.sin(p.drift) * 0.9;
+      p.tilt += 0.02;
+      ctx2d.save();
+      ctx2d.translate(p.x, p.y);
+      ctx2d.rotate(Math.sin(p.tilt) * 0.6);
+      ctx2d.fillStyle = p.color;
+      ctx2d.globalAlpha = 0.85;
       ctx2d.beginPath();
-      ctx2d.lineWidth = p.size;
-      ctx2d.strokeStyle = p.color;
-      ctx2d.moveTo(p.x + tilt + p.size / 2, p.y);
-      ctx2d.lineTo(p.x + tilt - p.size / 2, p.y + tilt + p.size / 2);
-      ctx2d.stroke();
+      ctx2d.ellipse(0, 0, p.size, p.size * 0.55, 0, 0, Math.PI * 2);
+      ctx2d.fill();
+      ctx2d.restore();
       if (p.y > canvas.height) parts.splice(i, 1);
     }
     if (parts.length > 0) confettiRaf = requestAnimationFrame(step);

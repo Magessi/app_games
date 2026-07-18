@@ -9,7 +9,7 @@ import { chooseMove, AI_LEVELS } from './core/ai.js';
 import { analyzeGame } from './core/analysis.js';
 import { generateDailyPuzzle, todayKey } from './core/puzzle.js';
 import { createStore } from './store.js';
-import { t, getLang, setLang } from './i18n.js';
+import { t } from './i18n.js';
 import { loadProfile, recordAiGame, recordPuzzle, ACHIEVEMENTS } from './profile.js';
 import {
   createBoard, updateBoard, updateStacks, createStacks, highlightTargets, drawWinLine,
@@ -148,7 +148,7 @@ function showSetup() {
   );
 
   const namesField = el('fieldset', {},
-    el('legend', {}, t('player1')),
+    el('legend', {}, t('players')),
     el('div', { class: 'name-row' },
       el('label', {}, t('player1'),
         el('input', {
@@ -173,36 +173,32 @@ function showSetup() {
   const panel = el('div', { class: 'panel' },
     el('div', { class: 'topbar' },
       el('button', {
-        class: 'icon-btn', type: 'button',
-        onclick: () => { setLang(getLang() === 'pt' ? 'en' : 'pt'); rerender(); },
-      }, getLang() === 'pt' ? '🇵🇹 PT' : '🇬🇧 EN'),
-      el('div', { class: 'spacer' }),
-      el('button', {
         class: 'icon-btn', type: 'button', title: t('theme'),
         onclick: () => {
           theme = theme === 'auto' ? 'dark' : theme === 'dark' ? 'light' : 'auto';
           applyTheme(); rerender();
         },
-      }, theme === 'auto' ? `☯ ${t('theme.auto')}` : theme === 'dark' ? `🌙 ${t('theme.dark')}` : `☀️ ${t('theme.light')}`),
+      }, theme === 'auto' ? `◐ ${t('theme.auto')}` : theme === 'dark' ? `☾ ${t('theme.dark')}` : `☀ ${t('theme.light')}`),
       el('button', {
         class: 'icon-btn', type: 'button', 'aria-pressed': String(!sound.muted), title: t('sound'),
         onclick: (e) => { sound.toggle(); e.target.setAttribute('aria-pressed', String(!sound.muted)); e.target.textContent = sound.muted ? '🔇' : '🔊'; },
       }, sound.muted ? '🔇' : '🔊'),
     ),
     el('h1', {}, t('title')),
-    el('p', { class: 'subtitle' }, t('setupTitle')),
+    el('p', { class: 'subtitle' }, t('tagline')),
     el('div', { class: 'setup-grid' },
       el('fieldset', {},
         el('legend', {}, t('howToPlay')),
         el('div', { class: 'rules' },
-          el('div', {}, t('rulesGoal')),
-          el('div', {}, el('span', { class: 'dot g' }), ' ', t('rulesGreen')),
-          el('div', {}, el('span', { class: 'dot y' }), ' ', t('rulesYellow')),
-          el('div', {}, el('span', { class: 'dot r' }), ' ', t('rulesRed')),
+          el('p', {}, t('rulesIntro')),
+          el('p', {}, t('rulesGoal')),
+          el('p', {}, el('b', {}, t('stackAria.green')), ' — ', t('rulesGreen')),
+          el('p', {}, el('b', {}, t('stackAria.yellow')), ' — ', t('rulesYellow')),
+          el('p', {}, el('b', {}, t('stackAria.red')), ' — ', t('rulesRed')),
         ),
       ),
       el('fieldset', {},
-        el('legend', {}, getLang() === 'pt' ? 'Modo' : 'Mode'),
+        el('legend', {}, t('mode')),
         seg([
           { value: 'ai', label: t('modeVsAi') },
           { value: '1v1', label: t('mode1v1') },
@@ -475,7 +471,7 @@ function updateBlitzLabel() {
   const label = session.els.blitzTimer;
   if (!label) return;
   const left = Math.max(0, (session.blitzDeadline - Date.now()) / 1000);
-  label.textContent = `⏱ ${left.toFixed(1)}s`;
+  label.textContent = `${left.toFixed(1)} s`;
   label.classList.toggle('low', left <= 3);
 }
 
@@ -584,15 +580,12 @@ function showEndOverlay(state, { puzzleFailed, humanWon, unlocked }) {
       el('div', { class: 'who' }, playerName(n)),
       el('div', {}, `${t('moves')}: ${mine.length}`),
       el('div', { class: 'pieces' },
-        el('span', { class: 'g' }, `● ${count(GREEN)}`),
-        el('span', { class: 'y' }, `● ${count(YELLOW)}`),
-        el('span', { class: 'r' }, `● ${count(RED)}`),
-      ),
+        `${t('stack.green')} ${count(GREEN)} · ${t('stack.yellow')} ${count(YELLOW)} · ${t('stack.red')} ${count(RED)}`),
     );
   });
 
   const achToasts = unlocked.map((id) => el('div', { class: 'ach-toast' },
-    el('span', { class: 'badge' }, '🏆'),
+    el('span', { class: 'badge' }, '✦'),
     el('div', {},
       el('b', {}, `${t('achUnlocked')} ${t(`ach.${id}`)}`),
       t(`ach.${id}.desc`),
@@ -604,7 +597,7 @@ function showEndOverlay(state, { puzzleFailed, humanWon, unlocked }) {
     ? el('button', {
       class: 'btn btn-ghost', type: 'button',
       onclick: (e) => runAnalysis(state, analysisSlot, e.target),
-    }, `📈 ${t('analyze')}`)
+    }, t('analyze'))
     : null;
 
   const overlay = el('div', { class: 'overlay' },
@@ -648,14 +641,14 @@ async function runAnalysis(state, slot, btn) {
     const m = state.history[turningPoint];
     lines.push(t('turningPoint', {
       n: turningPoint + 1, player: playerName(m.player),
-      color: t('color.' + colorName(m.color)), cell: cellName(m),
+      action: t('action.' + colorName(m.color)), cell: cellName(m),
     }));
   }
   if (mistake !== null && mistake !== turningPoint) {
     const m = state.history[mistake];
     lines.push(t('biggestMistake', {
       n: mistake + 1, player: playerName(m.player),
-      color: t('color.' + colorName(m.color)), cell: cellName(m),
+      action: t('action.' + colorName(m.color)), cell: cellName(m),
     }));
   }
   if (lines.length === 0) lines.push(t('cleanGame'));
@@ -675,7 +668,7 @@ async function runAnalysis(state, slot, btn) {
   );
 
   slot.replaceChildren(el('div', { class: 'analysis-box' },
-    el('h3', {}, `📈 ${t('analysis')}`),
+    el('h3', {}, t('analysis')),
     ...lines.map((l) => el('p', {}, l)),
     chart,
     el('p', { class: 'chart-hint' }, t('evalChartHint', { p1: playerName(1), p2: playerName(2) })),

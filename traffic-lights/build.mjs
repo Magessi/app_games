@@ -1,6 +1,6 @@
 // Builds a single self-contained HTML file (JS + CSS inlined) so the game
 // can be opened directly from disk or hosted anywhere as one file.
-// Usage: npm run build  ->  dist/traffic-lights.html
+// Usage: npm run build  ->  dist/pagoda.html
 
 import { build, transform } from 'esbuild';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
@@ -18,12 +18,12 @@ const rawCss = await readFile('styles/main.css', 'utf8');
 const css = (await transform(rawCss, { loader: 'css', minify: true })).code;
 
 const html = `<!DOCTYPE html>
-<html lang="pt">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="light dark">
-<title>Traffic Lights</title>
+<title>PAGODA</title>
 <style>${css}</style>
 </head>
 <body>
@@ -34,5 +34,5 @@ const html = `<!DOCTYPE html>
 `;
 
 await mkdir('dist', { recursive: true });
-await writeFile('dist/traffic-lights.html', html);
-console.log(`dist/traffic-lights.html written (${(html.length / 1024).toFixed(1)} KB)`);
+await writeFile('dist/pagoda.html', html);
+console.log(`dist/pagoda.html written (${(html.length / 1024).toFixed(1)} KB)`);
